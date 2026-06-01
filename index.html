@@ -2,13 +2,13 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<title>AI小红书助手</title>
+<title>AI小红书助手V2</title>
 
 <style>
 
 body{
 margin:0;
-font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei";
+font-family:-apple-system;
 background:#f5f5f5;
 }
 
@@ -16,133 +16,91 @@ background:#f5f5f5;
 background:#ff2442;
 color:white;
 padding:16px;
-font-size:18px;
-font-weight:bold;
 text-align:center;
+font-weight:bold;
 }
 
 .container{
-max-width:720px;
+max-width:750px;
 margin:20px auto;
 padding:0 16px;
 }
 
-/* 输入区 */
-.input-box{
+.input{
 background:white;
 padding:12px;
 border-radius:12px;
-box-shadow:0 2px 10px rgba(0,0,0,0.05);
 }
 
 textarea{
 width:100%;
-height:90px;
+height:100px;
 border:none;
 outline:none;
 font-size:14px;
-resize:none;
 }
 
-.btn{
+button{
 width:100%;
 margin-top:10px;
-padding:10px;
-background:#ff2442;
-color:white;
+padding:12px;
 border:none;
 border-radius:10px;
-font-size:14px;
+background:#ff2442;
+color:white;
 cursor:pointer;
 }
 
-/* 卡片 */
 .card{
 background:white;
-margin-top:16px;
-border-radius:16px;
+margin-top:15px;
 padding:16px;
-box-shadow:0 2px 12px rgba(0,0,0,0.06);
+border-radius:14px;
 }
 
-/* 标题 */
 .title{
-font-size:18px;
+font-size:16px;
 font-weight:600;
-margin-bottom:10px;
-color:#111;
 }
 
-/* 正文 */
-.content{
-font-size:14px;
+.tag{
+color:#ff2442;
+font-size:13px;
+margin-top:8px;
 line-height:1.6;
+}
+
+.content{
+margin-top:10px;
 white-space:pre-wrap;
+line-height:1.6;
+font-size:14px;
+}
+
+.small{
+font-size:12px;
+color:#888;
+margin-top:10px;
+}
+
+.copyBtn{
+margin-top:10px;
+background:#f2f2f2;
 color:#333;
 }
 
-/* 标签 */
-.tags{
-margin-top:10px;
-color:#ff2442;
-font-size:13px;
-}
-
-/* 封面文案 */
-.cover{
-margin-top:12px;
-padding-top:10px;
-border-top:1px solid #eee;
-font-size:13px;
-color:#666;
-}
-
-/* 操作 */
-.actions{
-display:flex;
-gap:10px;
-margin-top:12px;
-}
-
-.actions button{
-flex:1;
-padding:10px;
-border:none;
-border-radius:10px;
-font-size:13px;
-cursor:pointer;
-}
-
-.copy{
-background:#f2f2f2;
-}
-
-.regen{
-background:#fff0f1;
-color:#ff2442;
-}
-
-/* loading */
-.loading{
-color:#999;
-font-size:13px;
-}
-
 </style>
-
 </head>
 
 <body>
 
-<div class="header">
-AI小红书助手
-</div>
+<div class="header">AI小红书助手 V2</div>
 
 <div class="container">
 
-<div class="input-box">
-<textarea id="input" placeholder="输入："></textarea>
-<button class="btn" onclick="generate()">生成笔记</button>
+<div class="input">
+<textarea id="input" placeholder="输入：诺基亚N95 / iPhone4 / V3"></textarea>
+<button onclick="generate()">生成内容</button>
 </div>
 
 <div id="result"></div>
@@ -151,25 +109,15 @@ AI小红书助手
 
 <script>
 
-let lastData = "";
+let lastData = null;
 
 async function generate(){
 
-const input =
-document.getElementById("input").value;
+const input = document.getElementById("input").value;
 
-if(!input){
-alert("请输入内容");
-return;
-}
+document.getElementById("result").innerHTML = "生成中...";
 
-document.getElementById("result").innerHTML =
-"<div class='card loading'>生成中...</div>";
-
-try{
-
-const res =
-await fetch("/api/generate",{
+const res = await fetch("/api/generate",{
 method:"POST",
 headers:{
 "Content-Type":"application/json"
@@ -179,49 +127,55 @@ body:JSON.stringify({input})
 
 const data = await res.json();
 
-lastData = data.result || "";
+lastData = data;
 
-render(lastData);
-
-}catch(e){
-
-document.getElementById("result").innerHTML =
-"<div class='card'>请求失败：" + e.message + "</div>";
+render(data);
 
 }
 
-}
+function render(data){
 
-function render(text){
+if(data.error){
+document.getElementById("result").innerHTML = data.error;
+return;
+}
 
 document.getElementById("result").innerHTML = `
+
 <div class="card">
+<div class="title">标题</div>
+<div>${data.titles.join(" | ")}</div>
 
-<div class="title">生成结果</div>
+<div class="title" style="margin-top:10px;">正文</div>
+<div class="content">${data.content}</div>
 
-<div class="content">${text}</div>
+<div class="title" style="margin-top:10px;">标签</div>
+<div class="tag">${data.tags.map(t=>"#"+t).join(" ")}</div>
 
-<div class="actions">
-<button class="copy" onclick="copyText()">复制全文</button>
-<button class="regen" onclick="generate()">重新生成</button>
+<div class="title" style="margin-top:10px;">封面</div>
+<div>${data.cover}</div>
+
+<button class="copyBtn" onclick="copyAll()">一键复制全文</button>
+
 </div>
 
-</div>
 `;
 
 }
 
-function copyText(){
+function copyAll(){
 
-if(!lastData){
-alert("暂无内容");
-return;
-}
+if(!lastData) return;
 
-navigator.clipboard.writeText(lastData);
+const text =
+`标题：${lastData.titles.join(" | ")}
+正文：${lastData.content}
+标签：${lastData.tags.map(t=>"#"+t).join(" ")}
+封面：${lastData.cover}`;
+
+navigator.clipboard.writeText(text);
 
 alert("已复制");
-
 }
 
 </script>
