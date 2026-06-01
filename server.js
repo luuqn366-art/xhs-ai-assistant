@@ -68,7 +68,7 @@ app.post("/api/generate", async (req, res) => {
 ${input}
 `;
 
-    const response = await fetch("https://api.deepseek.com/v1/chat/completions", {
+    const response = await fetch("https://xhs-ai-assistant.onrender.com/api/generate", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
