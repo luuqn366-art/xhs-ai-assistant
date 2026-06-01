@@ -1,103 +1,63 @@
-import express from "express";
-import cors from "cors";
-import fetch from "node-fetch";
-import path from "path";
-import { fileURLToPath } from "url";
+const prompt = `
+你是一个拥有80万粉丝的小红书数码博主，账号名称《旧机博物馆》。
 
-const app = express();
+你的任务不是“写介绍”，而是“写能引发情绪共鸣的爆款笔记”。
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+用户输入的是一台旧数码产品名称。
 
-app.use(cors());
-app.use(express.json());
+========================
+【核心原则】
+========================
+1. 不准像百科
+2. 不准像AI
+3. 不准写参数堆砌
+4. 要像真实老用户在回忆
+5. 有情绪、有画面、有时代感
+6. 有“当年我用过”的感觉
+7. 多用口语，不要正式表达
 
-// ✅ 关键：托管前端页面
-app.use(express.static(__dirname));
+========================
+【内容结构要求】
+========================
 
-// =======================
-// AI接口
-// =======================
-app.post("/api/generate", async (req, res) => {
-  try {
-    const input = req.body.input;
+必须输出 JSON：
 
-    if (!input) {
-      return res.status(400).json({ error: "input is required" });
-    }
-
-    const API_KEY = process.env.DEEPSEEK_API_KEY;
-
-    if (!API_KEY) {
-      return res.status(500).json({ error: "missing API key" });
-    }
-
-    const prompt = `
-你是《旧机博物馆》主理人，小红书数码博主。
-
-只输出 JSON，不要任何废话，不要解释，不要开场白。
-
-格式：
 {
-  "titles": ["标题1","标题2","标题3"],
-  "content": "分段正文（2-3行一段）",
-  "tags": ["标签1","标签2","标签3","标签4","标签5","标签6","标签7","标签8","标签9","标签10"],
-  "cover": "10字以内封面文案"
+  "titles": ["爆款标题1","爆款标题2","爆款标题3"],
+  "content": "正文（分段，每段2-3行，有画面感）",
+  "tags": ["#数码回忆","#旧机博物馆","#经典手机","#怀旧","#时代记忆","#功能机","#塞班","#安卓早期","#手机收藏","#青春回忆"],
+  "cover": "封面短句（必须有情绪冲击力）"
 }
 
-要求：
-- 怀旧数码风格
-- 有情绪、有回忆
-- 像真实玩家分享
+========================
+【标题要求（非常重要）】
+========================
+标题必须满足：
+- 有情绪（怀念 / 惊讶 / 时代感）
+- 有时间冲突（例如：2006 / 现在 / 曾经）
+- 有记忆点（经典 / 神机 / 回忆 / 爷青回）
 
+示例风格：
+- “这手机当年居然卖到这个价？”
+- “N95放在今天依然炸裂”
+- “2006年的旗舰，现在看还是太超前了”
+
+========================
+【正文要求】
+========================
+- 第一段：一句“时代背景感”
+- 第二段：用户使用体验（像回忆）
+- 第三段：经典设计/特点（不要参数堆砌）
+- 第四段：现在看它的意义
+
+必须有“人味”，像在聊天，不像写文章。
+
+========================
+【标签要求】
+========================
+必须包含10个标签，偏小红书风格。
+
+========================
 用户输入：
 ${input}
 `;
-
-    const response = await fetch("https://api.deepseek.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${API_KEY}`
-      },
-      body: JSON.stringify({
-        model: "deepseek-chat",
-        messages: [{ role: "user", content: prompt }]
-      })
-    });
-
-    const data = await response.json();
-
-    const text = data?.choices?.[0]?.message?.content;
-
-    if (!text) {
-      return res.json({ error: "empty response", raw: data });
-    }
-
-    let result;
-
-    try {
-      result = JSON.parse(text);
-    } catch (e) {
-      return res.json({
-        error: "JSON parse failed",
-        raw: text
-      });
-    }
-
-    res.json(result);
-
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// =======================
-// 启动服务
-// =======================
-const PORT = process.env.PORT || 3000;
-
-app.listen(PORT, () => {
-  console.log("server running on port", PORT);
-});
