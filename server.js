@@ -31,89 +31,67 @@ app.post("/api/generate", async (req, res) => {
   try {
     const input = req.body.input;
 
-    if (!input) {
-      return res.status(400).json({
-        error: "input is required"
-      });
-    }
-
-    const API_KEY = process.env.DEEPSEEK_API_KEY;
-
-    if (!API_KEY) {
-      return res.status(500).json({
-        error: "DEEPSEEK_API_KEY not set"
-      });
-    }
-
     const prompt = `
-你是《旧机博物馆》主理人，小红书数码博主。
+你是《旧机博物馆》主理人，小红书爆款数码博主。
 
 严格要求：
-- 只输出 JSON
 - 不要任何解释
+- 不要开场白
 - 不要废话
 - 不要 "---"
-- 不要对话
+- 必须只输出 JSON
 
-输出格式：
+输出格式必须严格如下：
 
 {
   "titles": ["标题1","标题2","标题3"],
-  "content": "分段正文，每段2-3行，有情绪、有回忆感",
+  "content": "正文（分段排版，2-3行一段）",
   "tags": ["标签1","标签2","标签3","标签4","标签5","标签6","标签7","标签8","标签9","标签10"],
   "cover": "10字以内封面文案"
 }
+
+内容要求：
+- 怀旧数码风格
+- 有情绪、有回忆
+- 像老玩家分享，不像AI
+- 避免百科感
 
 用户输入：
 ${input}
 `;
 
-    const response = await fetch("https://xhs-ai-assistant.onrender.com/api/generate"), {
+    const response = await fetch("https://api.deepseek.com/v1/chat/completions", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${API_KEY}`
+        Authorization: `Bearer ${process.env.DEEPSEEK_API_KEY}`
       },
       body: JSON.stringify({
         model: "deepseek-chat",
-        messages: [
-          {
-            role: "user",
-            content: prompt
-          }
-        ]
+        messages: [{ role: "user", content: prompt }]
       })
     });
 
     const data = await response.json();
 
-    const text = data?.choices?.[0]?.message?.content;
+    let resultText = data.choices?.[0]?.message?.content || "{}";
 
-    if (!text) {
-      return res.json({
-        error: "empty response",
-        raw: data
-      });
-    }
-
+    // 防炸保护（防止模型不标准JSON）
     let result;
-
     try {
-      result = JSON.parse(text);
-    } catch (err) {
+      result = JSON.parse(resultText);
+    } catch (e) {
       return res.json({
-        error: "JSON parse failed",
-        raw: text
+        error: "JSON解析失败",
+        raw: resultText
       });
     }
 
     res.json(result);
 
-  } catch (err) {
-    console.error(err);
-
+  } catch (error) {
     res.status(500).json({
-      error: err.message
+      error: error.message
     });
   }
 });
