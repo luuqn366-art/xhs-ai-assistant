@@ -6,6 +6,10 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+app.get("/", (req, res) => {
+  res.send("XHS AI Assistant is running");
+});
+
 const API_KEY = process.env.DEEPSEEK_API_KEY;
 
 app.post("/api/generate", async (req, res) => {
