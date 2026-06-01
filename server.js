@@ -6,19 +6,25 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-app.get("/", (req, res) => {
-  res.send("XHS AI Assistant is running");
-});
+// 让 Express 直接提供 index.html
+app.use(express.static("."));
 
 const API_KEY = process.env.DEEPSEEK_API_KEY;
 
+// 首页
+app.get("/", (req, res) => {
+  res.sendFile(process.cwd() + "/index.html");
+});
+
+// AI生成接口
 app.post("/api/generate", async (req, res) => {
   try {
+
     const input = req.body.input;
 
     if (!API_KEY) {
       return res.status(500).json({
-        error: "Missing DEEPSEEK_API_KEY"
+        error: "DEEPSEEK_API_KEY not found"
       });
     }
 
@@ -36,34 +42,40 @@ app.post("/api/generate", async (req, res) => {
 ${input}
 `;
 
-    const response = await fetch("https://api.deepseek.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${API_KEY}`
-      },
-      body: JSON.stringify({
-        model: "deepseek-chat",
-        messages: [
-          {
-            role: "user",
-            content: prompt
-          }
-        ]
-      })
-    });
+    const response = await fetch(
+      "https://api.deepseek.com/v1/chat/completions",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${API_KEY}`
+        },
+        body: JSON.stringify({
+          model: "deepseek-chat",
+          messages: [
+            {
+              role: "user",
+              content: prompt
+            }
+          ]
+        })
+      }
+    );
 
     const data = await response.json();
 
     res.json({
-      result: data.choices?.[0]?.message?.content || "No response"
+      result: data.choices?.[0]?.message?.content || "生成失败"
     });
 
   } catch (error) {
+
     console.error(error);
+
     res.status(500).json({
       error: error.message
     });
+
   }
 });
 
