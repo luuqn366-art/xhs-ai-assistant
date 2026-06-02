@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>旧机工坊</title>
 
+<style>
+
 *{
 margin:0;
 padding:0;
@@ -25,15 +27,16 @@ padding-bottom:40px;
 background:#ff2442;
 color:#fff;
 text-align:center;
-padding:20px 15px;
-font-size:22px;
+padding:22px 15px;
+font-size:24px;
 font-weight:700;
+box-shadow:0 2px 8px rgba(0,0,0,.08);
 }
 
 .subtitle{
-margin-top:5px;
+margin-top:6px;
 font-size:12px;
-opacity:.85;
+opacity:.9;
 font-weight:400;
 }
 
@@ -48,8 +51,7 @@ padding:12px;
 background:#fff;
 border-radius:16px;
 padding:14px;
-box-shadow:
-0 2px 10px rgba(0,0,0,.05);
+box-shadow:0 2px 10px rgba(0,0,0,.05);
 }
 
 textarea{
@@ -62,9 +64,9 @@ font-size:15px;
 line-height:1.6;
 }
 
-button{
+.main-btn{
 width:100%;
-height:48px;
+height:50px;
 border:none;
 border-radius:12px;
 background:#ff2442;
@@ -80,14 +82,14 @@ background:white;
 margin-top:14px;
 padding:16px;
 border-radius:16px;
-box-shadow:
-0 2px 10px rgba(0,0,0,.05);
+box-shadow:0 2px 10px rgba(0,0,0,.05);
 }
 
 .section-title{
 font-size:16px;
 font-weight:700;
 margin-bottom:10px;
+color:#222;
 }
 
 .title-item{
@@ -98,6 +100,7 @@ margin-bottom:8px;
 font-size:15px;
 font-weight:600;
 line-height:1.5;
+border-left:4px solid #ff2442;
 }
 
 .content{
@@ -105,6 +108,7 @@ font-size:15px;
 line-height:1.9;
 white-space:pre-wrap;
 word-break:break-word;
+color:#333;
 }
 
 .tags{
@@ -126,18 +130,25 @@ font-size:12px;
 background:#fafafa;
 padding:12px;
 border-radius:10px;
-font-size:14px;
+font-size:15px;
+line-height:1.6;
 margin-top:10px;
 }
 
 .actions{
 display:flex;
 gap:10px;
-margin-top:12px;
+margin-top:14px;
 }
 
 .actions button{
-margin:0;
+flex:1;
+height:46px;
+border:none;
+border-radius:10px;
+cursor:pointer;
+font-size:14px;
+font-weight:600;
 }
 
 .secondary{
@@ -145,10 +156,22 @@ background:#f2f2f2;
 color:#333;
 }
 
+.primary{
+background:#ff2442;
+color:#fff;
+}
+
+.loading{
+text-align:center;
+padding:30px;
+font-size:15px;
+color:#666;
+}
+
 @media(max-width:768px){
 
 .header{
-font-size:20px;
+font-size:22px;
 padding:18px 12px;
 }
 
@@ -165,7 +188,13 @@ font-size:15px;
 line-height:1.9;
 }
 
+textarea{
+height:110px;
 }
+
+}
+
+</style>
 </head>
 
 <body>
@@ -180,8 +209,18 @@ line-height:1.9;
 <div class="container">
 
 <div class="input-card">
-<textarea id="input" placeholder="输入：诺基亚N95 / iPhone4 / 摩托罗拉V3"></textarea>
-<button onclick="generate()">生成爆款笔记</button>
+
+<textarea
+id="input"
+placeholder="输入一台旧设备，例如：诺基亚N95、iPhone 4、摩托罗拉V3、索尼爱立信W595">
+</textarea>
+
+<button
+class="main-btn"
+onclick="generate()">
+生成旧机档案
+</button>
+
 </div>
 
 <div id="result"></div>
@@ -194,54 +233,131 @@ let lastData = null;
 
 async function generate(){
 
-const input = document.getElementById("input").value;
-if(!input) return alert("请输入内容");
+const input =
+document.getElementById("input").value.trim();
 
-document.getElementById("result").innerHTML =
-"<div class='card'>生成中...</div>";
+if(!input){
+
+alert("请输入设备名称");
+
+return;
+
+}
+
+document.getElementById("result").innerHTML = `
+<div class="card">
+<div class="loading">
+正在翻阅这台设备的时代记忆...
+</div>
+</div>
+`;
+
+try{
 
 const res = await fetch("/api/generate",{
 method:"POST",
-headers:{ "Content-Type":"application/json" },
-body:JSON.stringify({input})
+headers:{
+"Content-Type":"application/json"
+},
+body:JSON.stringify({
+input
+})
 });
 
 const data = await res.json();
+
 lastData = data;
 
 render(data);
+
+}catch(err){
+
+document.getElementById("result").innerHTML = `
+<div class="card">
+生成失败：${err.message}
+</div>
+`;
+
+}
 
 }
 
 function render(data){
 
 if(data.error){
-document.getElementById("result").innerHTML =
-"<div class='card'>" + data.error + "</div>";
+
+document.getElementById("result").innerHTML = `
+<div class="card">
+${data.error}
+</div>
+`;
+
 return;
+
 }
 
 document.getElementById("result").innerHTML = `
 
 <div class="card">
 
-<div class="title">标题</div>
-<div>${data.titles.join(" ｜ ")}</div>
-
-<div class="title" style="margin-top:12px;">正文</div>
-<div class="content">${data.content}</div>
-
-<div class="title" style="margin-top:12px;">标签</div>
-<div class="tags">
-${data.tags.map(t=>`<div class="tag">#${t}</div>`).join("")}
+<div class="section-title">
+📌 推荐标题
 </div>
 
-<div class="title" style="margin-top:12px;">封面文案</div>
-<div class="cover">${data.cover}</div>
+${data.titles.map(
+t => `
+<div class="title-item">
+${t}
+</div>
+`
+).join("")}
+
+<div class="section-title" style="margin-top:18px;">
+📝 时代记忆
+</div>
+
+<div class="content">
+${data.content}
+</div>
+
+<div class="section-title" style="margin-top:18px;">
+🏷 推荐标签
+</div>
+
+<div class="tags">
+
+${data.tags.map(
+t => `
+<div class="tag">
+#${t}
+</div>
+`
+).join("")}
+
+</div>
+
+<div class="section-title" style="margin-top:18px;">
+📷 封面文案
+</div>
+
+<div class="cover">
+${data.cover}
+</div>
 
 <div class="actions">
-<button onclick="copyAll()">复制</button>
-<button class="primary" onclick="generate()">再生成</button>
+
+<button
+class="secondary"
+onclick="copyAll()">
+复制全部
+</button>
+
+<button
+class="primary"
+onclick="generate()">
+重新生成
+</button>
+
 </div>
 
 </div>
@@ -252,17 +368,35 @@ ${data.tags.map(t=>`<div class="tag">#${t}</div>`).join("")}
 
 function copyAll(){
 
-if(!lastData) return;
+if(!lastData){
+
+return;
+
+}
 
 const text =
-`标题：${lastData.titles.join(" | ")}
-正文：${lastData.content}
-标签：${lastData.tags.map(t=>"#"+t).join(" ")}
-封面：${lastData.cover}`;
+
+`推荐标题：
+
+${lastData.titles.join("\n")}
+
+正文：
+
+${lastData.content}
+
+标签：
+
+${lastData.tags.map(
+t => "#" + t
+).join(" ")}
+
+封面文案：
+
+${lastData.cover}`;
 
 navigator.clipboard.writeText(text);
 
-alert("已复制");
+alert("已复制到剪贴板");
 
 }
 
