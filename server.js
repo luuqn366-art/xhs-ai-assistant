@@ -20,7 +20,11 @@ app.use(express.static(__dirname));
 // =======================
 app.post("/api/generate", async (req, res) => {
   try {
-    const input = req.body.input;
+    const input = req.body.input || "";
+
+const device = input;
+const keyword = "";
+const level = "中";
 
     if (!input) {
       return res.status(400).json({ error: "input is required" });
