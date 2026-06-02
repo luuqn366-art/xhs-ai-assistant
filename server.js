@@ -18,15 +18,13 @@ app.use(express.static(__dirname));
 ======================= */
 function cleanInput(input) {
   if (!input) return "";
-
   input = input.trim();
   if (!input.replace(/\s/g, "")) return "";
-
   return input;
 }
 
 /* =======================
-   🧠 JSON安全解析
+   🧠 JSON解析
 ======================= */
 function safeParseJSON(text) {
   if (!text) return null;
@@ -45,67 +43,21 @@ function safeParseJSON(text) {
 }
 
 /* =======================
-   🧠 兜底结构
+   🧠 兜底
 ======================= */
-function fallbackResponse(rawText) {
+function fallbackResponse(input) {
   return {
     titles: ["旧设备记录"],
-    content: rawText || "生成失败，请重试",
+    content: input || "生成失败，请重试",
     tags: ["旧设备", "数码", "旧机工坊"],
     cover: "旧设备的时代记忆"
   };
 }
 
 /* =======================
-   🧠 风格检测（关键新增）
+   🧠 AI调用
 ======================= */
-function styleCheck(text) {
-  const badPatterns = [
-    /技术/,
-    /行业/,
-    /分析/,
-    /对比/,
-    /领先/,
-    /发展/,
-    /历史/,
-    /证明/,
-    /传感器/,
-    /CMOS/,
-    /像素/,
-    /卡片机/,
-  ];
-
-  let score = 0;
-
-  for (const p of badPatterns) {
-    if (p.test(text)) score++;
-  }
-
-  return score;
-}
-
-/* =======================
-   🧠 自动修复 Prompt
-======================= */
-function rewritePrompt(input) {
-  return `
-请用更自然、更像真实用户的方式描述这台旧设备。
-
-要求：
-- 只说外观特点 + 使用感受
-- 不要技术分析
-- 不要行业评价
-- 不要历史分析
-- 不要总结升华
-
-设备：${input}
-`;
-}
-
-/* =======================
-   🧠 AI调用封装（含重试）
-======================= */
-async function callAI(prompt, API_KEY, retry = 0) {
+async function callAI(prompt, API_KEY) {
   const response = await fetch("https://api.deepseek.com/v1/chat/completions", {
     method: "POST",
     headers: {
@@ -124,32 +76,11 @@ async function callAI(prompt, API_KEY, retry = 0) {
 
   if (!text) return null;
 
-  const parsed = safeParseJSON(text);
-
-  if (parsed) {
-    // 风格检测
-    const score = styleCheck(parsed.content || "");
-
-    if (score >= 2 && retry < 1) {
-      console.log("⚠️ style drift detected, retrying...");
-
-      const newPrompt = rewritePrompt(prompt);
-      return await callAI(newPrompt, API_KEY, retry + 1);
-    }
-
-    return parsed;
-  }
-
-  if (retry < 2) {
-    console.log("🔁 retry JSON parsing...");
-    return await callAI(prompt, API_KEY, retry + 1);
-  }
-
-  return null;
+  return safeParseJSON(text);
 }
 
 /* =======================
-   API接口
+   API
 ======================= */
 app.post("/api/generate", async (req, res) => {
   try {
@@ -170,42 +101,35 @@ app.post("/api/generate", async (req, res) => {
 
 不要写评测，不要写技术分析，不要写行业历史。
 
-重点只说三件事：
+只围绕三点：
+1. 外观特点
+2. 使用体验
+3. 当时为什么特别
 
-1. 最容易被记住的外观或设计特点
-2. 当年实际使用时的感受（手感、操作、体验）
-3. 放在那个年代，它为什么会显得有点特别
+要求：
+- 像随口说
+- 不夸张
+- 不煽情
+- 不总结升华
+- 不讲技术原理
+- 不讲行业发展
 
----
+必须输出 JSON：
 
-表达要求：
+{
+  "titles": [],
+  "content": "",
+  "tags": [],
+  "cover": ""
+}
 
-- 像一个用过的人在随口说
-- 不要夸张
-- 不要煽情
-- 不要总结升华
-- 不要“神机 / 传奇 / 倔强”这种词
-- 不要讲技术原理
-- 不要讲行业发展
-
----
-
-判断标准：
-
-读者看完应该是：
-
-“哦，原来当年是这种感觉。”
-
-而不是：
-
-“它在技术上很厉害。”
+设备：
 ${input}
 `;
 
     let result = await callAI(prompt, API_KEY);
 
     if (!result) {
-      console.log("⚠️ fallback triggered");
       result = fallbackResponse(input);
     }
 
