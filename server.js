@@ -32,7 +32,7 @@ app.post("/api/generate", async (req, res) => {
       return res.status(500).json({ error: "missing API key" });
     }
 
-    const prompt = `
+   const prompt = `
 你是《旧机工坊》的编辑。
 
 旧机工坊记录每一台旧设备的时代记忆。
@@ -120,8 +120,8 @@ app.post("/api/generate", async (req, res) => {
 }
 
 用户输入：
-
 ${input}
+`;
 
 
     const response = await fetch("https://api.deepseek.com/v1/chat/completions", {
